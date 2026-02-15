@@ -1,13 +1,160 @@
+<!-- define html document type -->
 <!DOCTYPE html>
-<html>
-<head>
-  <title>The Notes App</title>
-</head>
-<body>
-  <h1>Note Taking App</h1>
 
+<!-- start html -->
+<html>
+
+<!-- start head -->
+<head>
+
+  <!-- set page title -->
+  <title>notes app</title>
+
+</head>
+
+<!-- start body -->
+<body>
+
+
+  <!-- display title -->
+  <h1>notes app</h1>
+
+
+  <!-- create input box -->
+  <input id="noteInput">
+
+
+  <!-- create add note button -->
+  <button onclick="addNote()">add note</button>
+
+
+  <!-- create list to show notes -->
+  <ul id="notesList"></ul>
+
+
+
+  <!-- start javascript -->
   <script>
-    fetch('http://localhost:3000/notes'); //client server flow
+
+
+    // create function to load notes
+    async function loadNotes()
+    {
+
+      // send request to backend
+      const response = await fetch('http://localhost:3000/notes');
+
+
+      // convert response to json
+      const notes = await response.json();
+
+
+      // get list element
+      const list = document.getElementById('notesList');
+
+
+      // clear current list
+      list.innerHTML = '';
+
+
+      // loop through notes
+      notes.forEach(note =>
+      {
+
+        // create list item
+        const item = document.createElement('li');
+
+
+        // set text and delete button
+        item.innerHTML =
+          note.content +
+          ' <button onclick="deleteNote(' + note.id + ')">delete</button>';
+
+
+        // add item to list
+        list.appendChild(item);
+
+      });
+
+    }
+
+
+
+    // create function to add note
+    async function addNote()
+    {
+
+      // get text from input
+      const text = document.getElementById('noteInput').value;
+
+
+      // send post request and wait for completion
+      await fetch('http://localhost:3000/notes',
+      {
+
+        // set request method
+        method: 'POST',
+
+        // set request headers
+        headers:
+        {
+
+          // define content type
+          'Content-Type': 'application/json'
+
+        },
+
+        // send note content
+        body: JSON.stringify(
+        {
+
+          // include text
+          content: text
+
+        })
+
+      });
+
+
+      // clear input box
+      document.getElementById('noteInput').value = '';
+
+
+      // reload notes after save
+      loadNotes();
+
+    }
+
+
+
+    // create function to delete note
+    async function deleteNote(id)
+    {
+
+      // send delete request and wait for completion
+      await fetch('http://localhost:3000/notes/' + id,
+      {
+
+        // set request method
+        method: 'DELETE'
+
+      });
+
+
+      // reload notes after delete
+      loadNotes();
+
+    }
+
+
+
+    // load notes when page loads
+    loadNotes();
+
+
   </script>
+
+
 </body>
+
 </html>
