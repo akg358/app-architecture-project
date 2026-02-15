@@ -1,31 +1,186 @@
+// import express library
 const express = require('express');
+
+
+// import cors library
+const cors = require('cors');
+
+
+// import database
+const db = require('./database');
+
+
+// create express app
 const app = express();
 
-const notes = [" notes for english ", "notes for math"];
 
+// enable cors
+app.use(cors());
+
+
+// enable json parsing
 app.use(express.json());
 
+
+// define port
+const PORT = 3000;
+
+
+
+// create route to get notes
 app.get('/notes', (req, res) =>
 {
-    res.json(notes);
+
+  // run sql query
+  db.all(
+
+    // select all notes
+    'SELECT * FROM notes',
+
+    // no parameters needed
+    [],
+
+    // function after query
+    (err, rows) =>
+    {
+
+      // check for error
+      if (err)
+      {
+
+        // send error
+        res.status(500).send(err.message);
+
+      }
+
+      // run if successful
+      else
+      {
+
+        // send notes
+        res.json(rows);
+
+      }
+
+    }
+
+  );
+
 });
 
+
+
+// create route to add note
 app.post('/notes', (req, res) =>
 {
-    const note = req.body.note;
 
-    if (note)
+  // get content
+  const content = req.body.content;
+
+
+  // run insert query
+  db.run(
+
+    // insert note
+    'INSERT INTO notes (content) VALUES (?)',
+
+    // pass content
+    [content],
+
+    // function after insert
+    function(err)
     {
-        notes.push(note);
-        res.status(201).send({ message: "Note added" });
+
+      // check for error
+      if (err)
+      {
+
+        // send error
+        res.status(500).send(err.message);
+
+      }
+
+      // run if successful
+      else
+      {
+
+        // send new note
+        res.json(
+
+          {
+
+            // send id
+            id: this.lastID,
+
+            // send content
+            content: content
+
+          }
+
+        );
+
+      }
+
     }
-    else
-    {
-        res.status(400).send({ message: "No note provided" });
-    }
+
+  );
+
 });
 
-app.listen(3000, () =>
+
+
+// create route to delete note
+app.delete('/notes/:id', (req, res) =>
 {
-    console.log('Server running on http://localhost:3000');
+
+  // get id
+  const id = req.params.id;
+
+
+  // run delete query
+  db.run(
+
+    // delete note sql
+    'DELETE FROM notes WHERE id = ?',
+
+    // pass id
+    [id],
+
+    // function after delete
+    function(err)
+    {
+
+      // check for error
+      if (err)
+      {
+
+        // send error
+        res.status(500).send(err.message);
+
+      }
+
+      // run if successful
+      else
+      {
+
+        // send confirmation
+        res.send('note deleted');
+
+      }
+
+    }
+
+  );
+
+});
+
+
+
+// start server
+app.listen(PORT, () =>
+{
+
+  // print message
+  console.log('server running on port 3000');
+
 });
