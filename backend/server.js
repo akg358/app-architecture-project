@@ -1,186 +1,97 @@
-// import express library
-const express = require('express');
-
-
-// import cors library
+onst express = require('express');
 const cors = require('cors');
 
-
-// import database
 const db = require('./database');
 
-
-// create express app
 const app = express();
 
-
-// enable cors
 app.use(cors());
 
-
-// enable json parsing
 app.use(express.json());
 
-
-// define port
 const PORT = 3000;
 
 
+// route to get all the notes from the database
+app.get('/notes', (req, res) => {
 
-// create route to get notes
-app.get('/notes', (req, res) =>
-{
+  // query to get everything from notes table
+  db.all('SELECT * FROM notes', [], (err, rows) => {
 
-  // run sql query
-  db.all(
+    if (err) {
+      // print the error and send back a message
+      console.error(err.message);
 
-    // select all notes
-    'SELECT * FROM notes',
-
-    // no parameters needed
-    [],
-
-    // function after query
-    (err, rows) =>
-    {
-
-      // check for error
-      if (err)
-      {
-
-        // send error
-        res.status(500).send(err.message);
-
-      }
-
-      // run if successful
-      else
-      {
-
-        // send notes
-        res.json(rows);
-
-      }
-
+      
+      res.status(500).json({ error: 'something went wrong getting notes' });
+    } else {
+      // send the notes back as json
+      res.json(rows);
     }
 
-  );
+  });
 
 });
 
 
+// route to add a new note
+app.post('/notes', (req, res) => {
 
-// create route to add note
-app.post('/notes', (req, res) =>
-{
-
-  // get content
   const content = req.body.content;
 
+  // check that the note actually has something in it
+  if (!content || content.trim() === '') 
+  {
+    return res.status(400).json({ error: 'note cant be empty' });
+  }
 
-  // run insert query
-  db.run(
+  // insert the note into the database
+  db.run('INSERT INTO notes (content) VALUES (?)', [content], function(err) {
 
-    // insert note
-    'INSERT INTO notes (content) VALUES (?)',
+    if (err) {
+      console.error(err.message);
 
-    // pass content
-    [content],
+      
+      res.status(500).json({ error: 'something went wrong saving the note' });
 
-    // function after insert
-    function(err)
-    {
-
-      // check for error
-      if (err)
-      {
-
-        // send error
-        res.status(500).send(err.message);
-
-      }
-
-      // run if successful
-      else
-      {
-
-        // send new note
-        res.json(
-
-          {
-
-            // send id
-            id: this.lastID,
-
-            // send content
-            content: content
-
-          }
-
-        );
-
-      }
-
+      
+    } else {
+      // send back the new note with its id
+      res.json({ id: this.lastID, content: content });
     }
 
-  );
+  });
 
 });
 
 
 
-// create route to delete note
-app.delete('/notes/:id', (req, res) =>
-{
 
-  // get id
+// route to delete a note by its id
+app.delete('/notes/:id', (req, res) => {
+
+  // grab the id from the url
+  
   const id = req.params.id;
 
+  db.run('DELETE FROM notes WHERE id = ?', [id], function(err) {
 
-  // run delete query
-  db.run(
-
-    // delete note sql
-    'DELETE FROM notes WHERE id = ?',
-
-    // pass id
-    [id],
-
-    // function after delete
-    function(err)
+    if (err) 
+    
+    
     {
-
-      // check for error
-      if (err)
-      {
-
-        // send error
-        res.status(500).send(err.message);
-
-      }
-
-      // run if successful
-      else
-      {
-
-        // send confirmation
-        res.send('note deleted');
-
-      }
-
+      console.error(err.message);
+      res.status(500).json({ error: 'something went wrong deleting the note' });
+    } else {
+      res.send('note deleted');
     }
 
-  );
+  });
 
 });
 
 
-
-// start server
-app.listen(PORT, () =>
-{
-
-  // print message
+// start the server
+app.listen(PORT, () => {
   console.log('server running on port 3000');
-
 });
