@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - user-service
+      - note-service
+      - audit-service
+    networks:
+      - app-network
+
+  user-service:
+    build: ./user-service
+    ports:
+      - "3001:3001"
+    volumes:
+      - user-data:/app
+    networks:
+      - app-network
+
+  note-service:
+    build: ./note-service
+    ports:
+      - "3002:3002"
+    volumes:
+      - note-data:/app
+    networks:
+      - app-network
+
+  audit-service:
+    build: ./audit-service
+    ports:
+      - "3003:3003"
+    volumes:
+      - audit-data:/app
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  user-data:
+  note-data:
+  audit-data:
