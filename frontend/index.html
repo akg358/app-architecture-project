@@ -1,160 +1,114 @@
-<!-- define html document type -->
 <!DOCTYPE html>
-
-<!-- start html -->
 <html>
-
-<!-- start head -->
 <head>
-
-  <!-- set page title -->
-  <title>notes app</title>
-
+    <title>notes app</title>
+    <style>
+        body { font-family: Arial; max-width: 600px; margin: 50px auto; padding: 20px; }
+        input, button { padding: 10px; margin: 5px; }
+        ul { list-style: none; padding: 0; }
+        li { background: #f0f0f0; margin: 10px 0; padding: 10px; display: flex; justify-content: space-between; }
+        .delete { background: red; color: white; border: none; padding: 5px 10px; cursor: pointer; }
+        .user-box { background: #d4edda; padding: 10px; margin-bottom: 20px; }
+    </style>
 </head>
-
-<!-- start body -->
 <body>
 
+    <h1>notes app</h1>
 
-  <!-- display title -->
-  <h1>notes app</h1>
+    <div class="user-box">
+        user: 
+        <select id="userSelect">
+            <option value="1">user 1</option>
+        </select>
+        <button onclick="addUser()">new user</button>
+    </div>
 
+    <input id="noteInput" placeholder="write a note">
+    <button onclick="addNote()">add note</button>
 
-  <!-- create input box -->
-  <input id="noteInput">
+    <ul id="notesList"></ul>
 
+    <script>
+        const GATEWAY = 'http://localhost:8080/api';
+        let currentUserId = 1;
 
-  <!-- create add note button -->
-  <button onclick="addNote()">add note</button>
+        // get all users
+        async function loadUsers() {
+            try {
+                const res = await fetch(`${GATEWAY}/users`);
+                const users = await res.json();
+                const select = document.getElementById('userSelect');
+                select.innerHTML = '';
+                users.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.id;
+                    option.textContent = user.username;
+                    select.appendChild(option);
+                });
+                if (users.length > 0) currentUserId = users[0].id;
+                loadNotes();
+            } catch(err) {
+                console.log('no users yet');
+            }
+        }
 
+        // create new user
+        async function addUser() {
+            const username = prompt('username:');
+            const email = prompt('email:');
+            if (!username || !email) return;
+            await fetch(`${GATEWAY}/users`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, email })
+            });
+            loadUsers();
+        }
 
-  <!-- create list to show notes -->
-  <ul id="notesList"></ul>
+        // get notes
+        async function loadNotes() {
+            const res = await fetch(`${GATEWAY}/notes?user_id=${currentUserId}`);
+            const notes = await res.json();
+            const list = document.getElementById('notesList');
+            list.innerHTML = '';
+            notes.forEach(note => {
+                const item = document.createElement('li');
+                item.innerHTML = note.content + ' <button class="delete" onclick="deleteNote(' + note.id + ')">delete</button>';
+                list.appendChild(item);
+            });
+        }
 
+        // add note
+        async function addNote() {
+            const text = document.getElementById('noteInput').value;
+            if (!text.trim()) return;
+            await fetch(`${GATEWAY}/notes`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: text, user_id: currentUserId })
+            });
+            document.getElementById('noteInput').value = '';
+            loadNotes();
+        }
 
+        // delete note
+        async function deleteNote(id) {
+            await fetch(`${GATEWAY}/notes/${id}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: currentUserId })
+            });
+            loadNotes();
+        }
 
-  <!-- start javascript -->
-  <script>
+        // switch user
+        document.getElementById('userSelect').addEventListener('change', (e) => {
+            currentUserId = parseInt(e.target.value);
+            loadNotes();
+        });
 
-
-    // create function to load notes
-    async function loadNotes()
-    {
-
-      // send request to backend
-      const response = await fetch('http://localhost:3000/notes');
-
-
-      // convert response to json
-      const notes = await response.json();
-
-
-      // get list element
-      const list = document.getElementById('notesList');
-
-
-      // clear current list
-      list.innerHTML = '';
-
-
-      // loop through notes
-      notes.forEach(note =>
-      {
-
-        // create list item
-        const item = document.createElement('li');
-
-
-        // set text and delete button
-        item.innerHTML =
-          note.content +
-          ' <button onclick="deleteNote(' + note.id + ')">delete</button>';
-
-
-        // add item to list
-        list.appendChild(item);
-
-      });
-
-    }
-
-
-
-    // create function to add note
-    async function addNote()
-    {
-
-      // get text from input
-      const text = document.getElementById('noteInput').value;
-
-
-      // send post request and wait for completion
-      await fetch('http://localhost:3000/notes',
-      {
-
-        // set request method
-        method: 'POST',
-
-        // set request headers
-        headers:
-        {
-
-          // define content type
-          'Content-Type': 'application/json'
-
-        },
-
-        // send note content
-        body: JSON.stringify(
-        {
-
-          // include text
-          content: text
-
-        })
-
-      });
-
-
-      // clear input box
-      document.getElementById('noteInput').value = '';
-
-
-      // reload notes after save
-      loadNotes();
-
-    }
-
-
-
-    // create function to delete note
-    async function deleteNote(id)
-    {
-
-      // send delete request and wait for completion
-      await fetch('http://localhost:3000/notes/' + id,
-      {
-
-        // set request method
-        method: 'DELETE'
-
-      });
-
-
-      // reload notes after delete
-      loadNotes();
-
-    }
-
-
-
-    // load notes when page loads
-    loadNotes();
-
-
-  </script>
-
+        loadUsers();
+    </script>
 
 </body>
-
 </html>
